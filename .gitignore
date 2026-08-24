@@ -1,0 +1,16 @@
+# Node / Frontend
+node_modules/
+dist/
+*.local
+
+# .NET / Backend
+bin/
+obj/
+.vs/
+*.user
+*.userosscache
+*.suo
+
+# OS Files
+.DS_Store
+Thumbs.db

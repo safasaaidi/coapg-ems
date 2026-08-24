@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/COPAG.EMS.API/COPAG.EMS.API.csproj" />
+    <Project Path="src/COPAG.EMS.Application/COPAG.EMS.Application.csproj" />
+    <Project Path="src/COPAG.EMS.Domain/COPAG.EMS.Domain.csproj" />
+    <Project Path="src/COPAG.EMS.Infrastructure/COPAG.EMS.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/COPAG.EMS.Tests/COPAG.EMS.Tests.csproj" />
+  </Folder>
+</Solution>
