@@ -1,4 +1,5 @@
 using COPAG.EMS.Application.Services;
+using COPAG.EMS.Infrastructure.Services;
 using COPAG.EMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -43,6 +44,12 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader();
     });
 });
+builder.Services.AddScoped<WorkOrderService>();
+builder.Services.AddScoped<InterventionService>();
+builder.Services.AddScoped<PreventivePlanService>();
+builder.Services.AddScoped<DashboardService>();
+builder.Services.AddSingleton<CsvExportService>();
+builder.Services.AddHostedService<PreventiveTaskSchedulerService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -55,7 +62,8 @@ app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapGet("/", () => Results.Redirect("/swagger"));
 app.MapControllers();
+app.MapGet("/", () => Results.Redirect("/swagger"));
+
 
 app.Run();

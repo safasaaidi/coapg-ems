@@ -17,4 +17,5 @@ public class EquipmentDto
     public string Status { get; set; } = string.Empty;
     public string Criticality { get; set; } = string.Empty;
     public DateTime InstallationDate { get; set; }
+    public string SiteName { get; set; } = string.Empty;// ← Propriété ajoutée
 }

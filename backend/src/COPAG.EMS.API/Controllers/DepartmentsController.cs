@@ -1,4 +1,5 @@
 using COPAG.EMS.Application.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace COPAG.EMS.API.Controllers;
@@ -22,6 +23,15 @@ public class DepartmentsController : ControllerBase
     {
         var result = await _service.CreateAsync(request.Name, request.SiteId);
         return CreatedAtAction(nameof(GetAll), new { id = result.Id }, result);
+    }
+
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,ResponsableMaintenance")]
+    public async Task<IActionResult> ExportCsv([FromServices] CsvExportService csvService)
+    {
+        var departments = await _service.GetAllAsync();
+        var bytes = csvService.ExportToCsv(departments);
+        return File(bytes, "text/csv", $"departements_{DateTime.UtcNow:yyyyMMdd}.csv");
     }
 }
 

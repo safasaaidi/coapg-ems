@@ -1,0 +1,7 @@
+.new-request-page { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 24px; color: var(--text-primary); }
+.telemetry-panel, .request-form { background: var(--navy-900); border: 1px solid var(--border-soft); border-radius: 12px; padding: 20px; }
+.request-form { display: grid; gap: 16px; }
+.request-form .field { display: grid; gap: 6px; }
+.request-form input, .request-form select, .request-form textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: 7px; background: var(--navy-800); color: var(--text-primary); font: inherit; }
+.request-form .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .new-request-page { grid-template-columns: 1fr; } .request-form .field-row { grid-template-columns: 1fr; } }

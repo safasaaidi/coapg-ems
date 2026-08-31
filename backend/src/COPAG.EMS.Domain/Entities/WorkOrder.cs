@@ -36,4 +36,8 @@ public class WorkOrder : BaseEntity
     // Retiré : DiagnosticDetails, ActionsTaken, ResolutionDetails
     // (ces infos vivent maintenant dans Intervention, car il peut y en avoir plusieurs)
     public ICollection<Intervention> Interventions { get; set; } = new List<Intervention>();
+
+public MaintenanceType? MaintenanceType { get; set; }
+public DateTime? DueDate { get; set; }
+public string? Instructions { get; set; }
 }

@@ -1,0 +1,206 @@
+/* ==========================================================================
+   Equipments List Page Styles
+   ========================================================================== */
+
+.equipment-page {
+  color: var(--text-primary, #f8fafc);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Header */
+.equipment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.equipment-header h1 {
+  margin: 0 0 4px 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.equipment-header p {
+  margin: 0;
+  color: var(--text-muted, #94a3b8);
+  font-size: 14px;
+}
+
+.equipment-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Cartes de synthèse (Summary Cards) */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.summary-card {
+  background: var(--navy-900, #0f172a);
+  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summary-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summary-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.summary-value.tone-green { color: #34d399; }
+.summary-value.tone-amber { color: #fbbf24; }
+.summary-value.tone-red { color: #f87171; }
+
+.summary-hint {
+  font-size: 12px;
+  color: var(--text-muted, #64748b);
+}
+
+/* Barre de filtres */
+.filters-bar {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+  background: var(--navy-900, #0f172a);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
+}
+
+.search-input,
+.filters-bar select {
+  background: var(--navy-800, #1e293b);
+  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
+  color: var(--text-primary, #f8fafc);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  outline: none;
+}
+
+.search-input:focus,
+.filters-bar select:focus {
+  border-color: #3b82f6;
+}
+
+/* Tableau d'équipements */
+.equipment-table-card {
+  background: var(--navy-900, #0f172a);
+  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.equipment-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.equipment-table th {
+  background: var(--navy-800, #1e293b);
+  color: var(--text-muted, #94a3b8);
+  padding: 14px 16px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.equipment-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-soft, rgba(255, 255, 255, 0.05));
+}
+
+.equipment-table tr:last-child td {
+  border-bottom: none;
+}
+
+.code-cell {
+  font-family: monospace;
+  font-weight: 600;
+  color: #60a5fa;
+}
+
+/* Badges & Tags */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.status-operationnel {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.status-badge.status-enmaintenance {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.status-badge.status-horsservice {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.criticality-tag {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.criticality-tag.criticality-critique { color: #ef4444; }
+.criticality-tag.criticality-elevee { color: #f97316; }
+.criticality-tag.criticality-moyenne { color: #eab308; }
+.criticality-tag.criticality-faible { color: #64748b; }
+
+/* Actions */
+.actions-cell {
+  display: flex;
+  gap: 12px;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: #60a5fa;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.empty-row {
+  text-align: center;
+  color: var(--text-muted, #64748b);
+  padding: 32px !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .filters-bar {
+    grid-template-columns: 1fr;
+  }
+}

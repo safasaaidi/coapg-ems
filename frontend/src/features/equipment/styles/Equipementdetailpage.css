@@ -1,0 +1,179 @@
+/* ==========================================================================
+   Equipment Detail Page Styles
+   ========================================================================== */
+
+.equipment-detail {
+  color: var(--text-primary, #f8fafc);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Header & Bouton retour */
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.back-link {
+  background: none;
+  border: none;
+  color: #60a5fa;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.detail-header h1 {
+  margin: 0 0 10px 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.detail-badges {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Onglets (Tabs) */
+.detail-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
+}
+
+.detail-tab {
+  background: none;
+  border: none;
+  color: var(--text-muted, #94a3b8);
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.detail-tab.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+}
+
+/* Grille de contenu */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.detail-card {
+  background: var(--navy-900, #0f172a);
+  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.detail-card.wide {
+  grid-column: span 2;
+}
+
+.detail-card h2 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+}
+
+/* Liste d'informations */
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+.info-row dt {
+  color: var(--text-muted, #94a3b8);
+}
+
+.info-row dd {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Composants principaux */
+.component-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.component-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  padding: 10px;
+  background: var(--navy-800, #1e293b);
+  border-radius: 8px;
+}
+
+/* Historique Table */
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+
+.history-table th {
+  background: var(--navy-800, #1e293b);
+  color: var(--text-muted, #94a3b8);
+  padding: 10px 14px;
+}
+
+.history-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-soft, rgba(255, 255, 255, 0.05));
+}
+
+.tab-placeholder {
+  color: var(--text-muted, #94a3b8);
+  font-style: italic;
+  padding: 40px 0;
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .detail-card.wide {
+    grid-column: span 1;
+  }
+}

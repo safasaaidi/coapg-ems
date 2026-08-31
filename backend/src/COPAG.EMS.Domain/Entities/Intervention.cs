@@ -19,4 +19,5 @@ public class Intervention : BaseEntity
     public DateTime StartedAt { get; set; }
     public DateTime? EndedAt { get; set; }
     public int? DowntimeMinutes { get; set; } // durée d'arrêt, utile pour le calcul du MTTR
+public ICollection<InterventionPart> Parts { get; set; } = new List<InterventionPart>();
 }

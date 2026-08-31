@@ -9,7 +9,7 @@ public class User : BaseEntity
     public string LastName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty; // jamais le mot de passe en clair (ENF-01)
-    public UserRole Role { get; set; } = UserRole.Requester;
+    public UserRole Role { get; set; } = UserRole.Demandeur;
     public bool IsActive { get; set; } = true;
 
     // Rattachement optionnel à un site/département (ex: un technicien travaille sur un site précis)
