@@ -13,7 +13,7 @@ const api = axios.create({
 // 1. Intercepteur de Requête : Alignement sur 'authToken'
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken'); // 👈 Modifié pour correspondre à App.tsx
+    const token = localStorage.getItem('authToken'); //  Modifié pour correspondre à App.tsx
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -21,6 +21,7 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+
 
 // 2. Intercepteur de Réponse
 api.interceptors.response.use(

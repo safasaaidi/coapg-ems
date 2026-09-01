@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { authService } from '../../services/authService';
+import { authService } from './api/authService';
 import api from '../../services/api';
 interface LoginPageProps {
   onLoginSuccess: (userRole?: string) => void;
@@ -27,27 +27,27 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
   // 1. Soumission de la connexion backend
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage('');
+  e.preventDefault();
+  setErrorMessage('');
 
-    if (!email || !password) {
-      setErrorMessage('Veuillez renseigner votre email et votre mot de passe.');
-      return;
-    }
+  if (!email || !password) {
+    setErrorMessage('Veuillez renseigner votre email et votre mot de passe.');
+    return;
+  }
 
-    try {
-      setIsLoading(true);
-      const data = await authService.login({ email, password });
-      onLoginSuccess(data.user.role);
-    } catch (err: any) {
-      console.error('Erreur de connexion:', err);
-      setErrorMessage(
-        err.response?.data?.message || 'Email ou mot de passe incorrect. Vérifiez le backend.'
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  try {
+    setIsLoading(true);
+    const user = await authService.login(email, password);
+    onLoginSuccess(user.role);
+  } catch (err: any) {
+    console.error('Erreur de connexion:', err);
+    setErrorMessage(
+      err.response?.data?.message || 'Email ou mot de passe incorrect.'
+    );
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // 2. Connexion Google SSO
   const handleGoogleLogin = () => {

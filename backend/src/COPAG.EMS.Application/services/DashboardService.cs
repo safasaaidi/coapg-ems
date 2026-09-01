@@ -12,7 +12,7 @@ public class DashboardService
     // Seuil de retard : une demande non résolue au-delà de ce nombre de jours est considérée en retard.
     private const int OverdueThresholdDays = 3;
 
-    // Fenêtre d'observation utilisée pour approximer le MTBF (30 jours), faute d'historique complet de disponibilité.
+    // Fenêtre d'observation utilisée pour approximer le MTBF (30 jours = 720h).
     private const double ObservationWindowHours = 720;
 
     public DashboardService(ApplicationDbContext context)
@@ -30,19 +30,18 @@ public class DashboardService
         int total = requests.Count;
         int pending = requests.Count(r => r.Status is WorkOrderStatus.New or WorkOrderStatus.PendingValidation or WorkOrderStatus.Approved);
         int inProgress = requests.Count(r => r.Status == WorkOrderStatus.InProgress);
-        int completed = requests.Count(r => r.Status is WorkOrderStatus.Completed or WorkOrderStatus.Closed);
+        int completed = requests.Count(r => r.Status is WorkOrderStatus.Closed or WorkOrderStatus.Completed);
 
-        // Retard réel : demande toujours ouverte (pas Closed/Completed) et déclarée il y a plus de OverdueThresholdDays jours.
+        // Retard réel : demande non clôturée et déclarée au-delà du seuil
         int overdue = requests.Count(r =>
             r.Status is not (WorkOrderStatus.Closed or WorkOrderStatus.Completed or WorkOrderStatus.Rejected)
             && r.ReportedAt < now.AddDays(-OverdueThresholdDays));
 
-        // MTTR (RG-11) : temps total de réparation / nombre de réparations clôturées.
+        // MTTR (RG-11) : Temps total de réparation / Nombre d'interventions
         double totalRepairHours = interventions.Sum(i => (i.EndedAt!.Value - i.StartedAt).TotalHours);
         double mttr = interventions.Count > 0 ? totalRepairHours / interventions.Count : 0;
 
-        // MTBF (RG-12), approximé par équipement : fenêtre d'observation / nombre de pannes distinctes par équipement,
-        // puis moyenne sur l'ensemble des équipements ayant eu au moins une panne.
+        // MTBF (RG-12) : Moyenne du MTBF par équipement ayant subi au moins une panne
         var failuresByEquipment = requests
             .Where(r => !string.IsNullOrWhiteSpace(r.FailureCategory))
             .GroupBy(r => r.EquipmentId)
@@ -50,7 +49,7 @@ public class DashboardService
             .ToList();
 
         double mtbf = failuresByEquipment.Count > 0
-            ? failuresByEquipment.Average(failureCount => ObservationWindowHours / failureCount)
+            ? failuresByEquipment.Average(failureCount => failureCount > 0 ? ObservationWindowHours / failureCount : ObservationWindowHours)
             : ObservationWindowHours;
 
         double availability = (mtbf + mttr) > 0 ? (mtbf / (mtbf + mttr)) * 100 : 100;
@@ -67,26 +66,43 @@ public class DashboardService
             AvailabilityRate = Math.Round(availability, 2)
         };
     }
-    public async Task<List<object>> GetFailuresByDepartmentAsync()
-{
-    return await _context.WorkOrders
-        .Include(w => w.Equipment).ThenInclude(e => e!.Department)
-        .GroupBy(w => w.Equipment!.Department!.Name)
-        .Select(g => new { Label = g.Key, Value = g.Count() })
-        .ToListAsync<object>();
-}
 
-public async Task<List<object>> GetEquipmentStatusDistributionAsync()
+    public async Task<List<ChartDataDto>> GetFailuresByDepartmentAsync()
+    {
+        return await _context.WorkOrders
+            .AsNoTracking()
+            .Include(w => w.Equipment)
+                .ThenInclude(e => e!.Department)
+            .GroupBy(w => w.Equipment != null && w.Equipment.Department != null 
+                ? w.Equipment.Department.Name 
+                : "Non Défini")
+            .Select(g => new ChartDataDto 
+            { 
+                Label = g.Key, 
+                Value = g.Count() 
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<ChartDataDto>> GetEquipmentStatusDistributionAsync()
 {
     var equipments = await _context.Equipments.AsNoTracking().ToListAsync();
     var total = equipments.Count;
-    if (total == 0) return new List<object>();
+    
+    if (total == 0) 
+        return new List<ChartDataDto>();
 
     return equipments
         .GroupBy(e => e.Status)
-        .Select(g => (object)new
+        .Select(g => new ChartDataDto
         {
-            Label = g.Key.ToString(),
+            Label = g.Key switch
+            {
+                EquipmentStatus.Operational => "En Service",
+                EquipmentStatus.InMaintenance => "En Maintenance",
+                EquipmentStatus.Down => "En Panne",
+                _ => g.Key.ToString()
+            },
             Value = Math.Round((double)g.Count() / total * 100, 1)
         })
         .ToList();

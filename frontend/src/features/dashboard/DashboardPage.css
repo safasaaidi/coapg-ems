@@ -1,12 +1,12 @@
-/* ==========================================================================
-   Dashboard Page Styles
-   ========================================================================== */
-
 .dashboard {
-  color: var(--text-primary, #f8fafc);
+  background-color: #0b111e;
+  color: #f8fafc;
+  padding: 24px;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* En-tête */
@@ -17,110 +17,158 @@
 }
 
 .dashboard-header h1 {
-  margin: 0 0 4px 0;
   font-size: 22px;
   font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 4px 0;
 }
 
-.dashboard-header p {
+.dashboard-subtitle {
+  color: #64748b;
+  font-size: 13px;
   margin: 0;
-  color: var(--text-muted, #94a3b8);
-  font-size: 14px;
 }
 
 .dashboard-loading-badge {
   font-size: 12px;
   background: rgba(59, 130, 246, 0.15);
   color: #60a5fa;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 20px;
 }
 
-/* Grille des KPIs */
+/* KPI Grid */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
 
 .kpi-card {
-  background: var(--navy-900, #0f172a);
-  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
+  background: #131a28;
+  border: 1px solid #1e293b;
   border-radius: 12px;
   padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+}
+
+.kpi-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .kpi-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--text-muted, #94a3b8);
-  text-transform: uppercase;
+  color: #64748b;
   letter-spacing: 0.05em;
 }
 
+.kpi-icon-wrapper {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kpi-icon-wrapper.orange { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.kpi-icon-wrapper.green { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+
 .kpi-value {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
   color: #ffffff;
-  line-height: 1.1;
+  margin: 12px 0 4px 0;
+}
+
+.kpi-value .unit {
+  font-size: 18px;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.kpi-value-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.kpi-badge-urgent {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
 }
 
 .kpi-hint {
   font-size: 12px;
-  color: var(--text-muted, #64748b);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
+  color: #64748b;
 }
 
-.kpi-hint.with-trend {
-  color: var(--text-muted, #94a3b8);
-}
-
-.kpi-trend {
+.kpi-trend.green {
+  font-size: 12px;
+  color: #34d399;
   font-weight: 600;
-  color: #34d399; /* Vert succès */
-  background: rgba(52, 211, 153, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
+  margin-bottom: 2px;
 }
 
-/* Grille des Graphiques */
+.kpi-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: #1e293b;
+  border-radius: 2px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.kpi-progress-fill {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 2px;
+}
+
+/* Charts */
 .chart-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
 
 .chart-card {
-  background: var(--navy-900, #0f172a);
-  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
+  background: #131a28;
+  border: 1px solid #1e293b;
   border-radius: 12px;
   padding: 20px;
-  display: flex;
-  flex-direction: column;
 }
 
 .chart-card h2 {
-  margin: 0 0 24px 0;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--text-primary, #f8fafc);
+  margin: 0;
+  color: #ffffff;
 }
 
-/* Histogramme (BarChart) */
+.chart-subtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin: 4px 0 16px 0;
+}
+
+/* Histogramme */
 .bar-chart {
   display: flex;
   align-items: flex-end;
   justify-content: space-around;
   height: 180px;
-  padding-top: 20px;
+  padding-top: 10px;
 }
 
 .bar-column {
@@ -129,68 +177,41 @@
   align-items: center;
   height: 100%;
   width: 100%;
-  max-width: 60px;
-  gap: 8px;
-}
-
-.bar-value-tooltip {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted, #94a3b8);
+  max-width: 50px;
 }
 
 .bar-track {
-  width: 24px;
+  width: 28px;
   height: 100%;
-  background: var(--navy-800, #1e293b);
-  border-radius: 6px;
+  background: transparent;
   display: flex;
   align-items: flex-end;
-  overflow: hidden;
 }
 
 .bar-fill {
   width: 100%;
-  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
-  border-radius: 6px;
-  transition: height 0.4s ease-out;
+  background: #3b82f6;
+  border-radius: 4px 4px 0 0;
 }
 
 .bar-label {
-  font-size: 12px;
-  color: var(--text-muted, #94a3b8);
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 80px;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 8px;
 }
 
-/* Camembert / Donut (DonutChart) */
+/* Donut */
 .donut-chart-container {
   display: flex;
-  align-items: center;
   justify-content: center;
-  flex: 1;
+  align-items: center;
+  padding-top: 10px;
 }
 
 .donut-chart {
   display: flex;
   align-items: center;
-  gap: 32px;
-  width: 100%;
-  justify-content: center;
-}
-
-.donut-total-value {
-  fill: #ffffff;
-  font-size: 22px;
-  font-weight: 700;
-}
-
-.donut-total-label {
-  fill: var(--text-muted, #94a3b8);
-  font-size: 12px;
+  gap: 40px;
 }
 
 .donut-legend {
@@ -199,16 +220,16 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-width: 160px;
 }
 
 .donut-legend li {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  font-size: 13px;
-  color: var(--text-primary, #f8fafc);
+  align-items: center;
+  font-size: 12px;
+  color: #94a3b8;
 }
 
 .donut-legend-info {
@@ -218,25 +239,120 @@
 }
 
 .dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  display: inline-block;
 }
 
 .donut-legend-value {
+  color: #ffffff;
   font-weight: 600;
-  color: var(--text-muted, #94a3b8);
 }
 
-/* Responsive */
-@media (max-width: 640px) {
-  .chart-grid {
-    grid-template-columns: 1fr;
-  }
+.donut-legend-total {
+  border-top: 1px solid #1e293b;
+  padding-top: 8px;
+  margin-top: 4px;
+}
 
-  .donut-chart {
-    flex-direction: column;
-    gap: 16px;
-  }
+/* Table Section */
+.recent-interventions-card {
+  background: #131a28;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.recent-interventions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.export-btn {
+  background: #3b82f6;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recent-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+  text-align: left;
+}
+
+.recent-table th {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 12px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.recent-table td {
+  padding: 14px 12px;
+  font-size: 13px;
+  color: #cbd5e1;
+  border-bottom: 1px solid #1e293b;
+}
+
+.code-cell {
+  color: #60a5fa !important;
+  font-weight: 500;
+}
+
+.equipment-cell {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.technician-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar-circle {
+  background: #334155;
+  color: #ffffff;
+  border-radius: 50%;
+  padding: 4px 6px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Priority & Status Badges */
+.priority-badge {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.priority-badge.critique { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.priority-badge.elevee { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.priority-badge.moyenne { background: rgba(234, 179, 8, 0.15); color: #eab308; }
+.priority-badge.basse { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+
+.status-badge {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.in-progress { color: #f59e0b; }
+.status-badge.resolved { color: #10b981; }
+
+.no-data-msg {
+  color: #64748b;
+  font-size: 13px;
+  text-align: center;
+  padding: 24px;
 }

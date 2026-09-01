@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using COPAG.EMS.Application.Services;
+using COPAG.EMS.Application.DTOs;
 
 namespace COPAG.EMS.API.Controllers;
 
@@ -16,15 +17,36 @@ public class DashboardController : ControllerBase
         _dashboardService = dashboardService;
     }
 
+    /// <summary>
+    /// Récupère les indicateurs clés de performance (KPIs) du tableau de bord.
+    /// </summary>
     [HttpGet("kpis")]
-    public async Task<IActionResult> GetKpis()
+    [ProducesResponseType(typeof(DashboardKpiDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DashboardKpiDto>> GetKpis()
     {
         var kpis = await _dashboardService.GetKpisAsync();
         return Ok(kpis);
     }
-    [HttpGet("failures-by-department")]
-public async Task<IActionResult> GetFailuresByDepartment() => Ok(await _dashboardService.GetFailuresByDepartmentAsync());
 
-[HttpGet("equipment-status")]
-public async Task<IActionResult> GetEquipmentStatus() => Ok(await _dashboardService.GetEquipmentStatusDistributionAsync());
+    /// <summary>
+    /// Récupère la répartition du nombre de pannes par département.
+    /// </summary>
+    [HttpGet("failures-by-department")]
+    [ProducesResponseType(typeof(List<ChartDataDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<ChartDataDto>>> GetFailuresByDepartment()
+    {
+        var data = await _dashboardService.GetFailuresByDepartmentAsync();
+        return Ok(data);
+    }
+
+    /// <summary>
+    /// Récupère la distribution en pourcentage du statut des équipements.
+    /// </summary>
+    [HttpGet("equipment-status")]
+    [ProducesResponseType(typeof(List<ChartDataDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<ChartDataDto>>> GetEquipmentStatus()
+    {
+        var data = await _dashboardService.GetEquipmentStatusDistributionAsync();
+        return Ok(data);
+    }
 }

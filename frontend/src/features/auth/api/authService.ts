@@ -12,8 +12,11 @@ export const authService = {
   async login(email: string, password: string): Promise<CurrentUser> {
     const response = await api.post<{ token: string }>('/auth/login', { email, password });
     const { token } = response.data;
+
     localStorage.setItem('authToken', token);
 
+    // Le backend ne renvoie que le token — les infos utilisateur (id, email, role, nom)
+    // sont extraites directement du token JWT décodé, pas d'un objet "user" séparé.
     const payload = JSON.parse(atob(token.split('.')[1]));
     const user: CurrentUser = {
       id: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'],
@@ -22,6 +25,7 @@ export const authService = {
       firstName: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'] ?? '',
       lastName: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname'] ?? '',
     };
+
     localStorage.setItem('user', JSON.stringify(user));
     return user;
   },
@@ -31,8 +35,25 @@ export const authService = {
     localStorage.removeItem('user');
   },
 
-  getCurrentUser(): CurrentUser | null {
-    const raw = localStorage.getItem('user');
-    return raw ? JSON.parse(raw) : null;
+  // authService.ts (vers la ligne 40)
+
+getCurrentUser: () => {
+    const userStr = localStorage.getItem('user');
+    
+    // Vérification : on ne parse que si la valeur existe et n'est pas "undefined"
+    if (!userStr || userStr === "undefined") {
+        return null;
+    }
+
+    try {
+        return JSON.parse(userStr);
+    } catch (e) {
+        // En cas d'erreur de parsing, on nettoie le storage invalide
+        localStorage.removeItem('user');
+        return null;
+    }
+},
+  isAuthenticated(): boolean {
+    return !!localStorage.getItem('authToken');
   },
 };

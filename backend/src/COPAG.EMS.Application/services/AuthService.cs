@@ -57,4 +57,34 @@ public class AuthService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+    public async Task<(string? Token, string? Error)> RegisterAsync(string fullName, string email, string password, string role)
+{
+    var exists = await _context.Users.AnyAsync(u => u.Email == email);
+    if (exists) return (null, "Cet email est déjà utilisé.");
+
+    if (!Enum.TryParse<Domain.Enums.UserRole>(role, true, out var userRole))
+        userRole = Domain.Enums.UserRole.Demandeur; // valeur de repli si le rôle envoyé ne correspond à rien
+
+    var parts = fullName.Trim().Split(' ', 2);
+    var firstName = parts[0];
+    var lastName = parts.Length > 1 ? parts[1] : parts[0];
+
+    var user = new User
+    {
+        Id = Guid.NewGuid(),
+        FirstName = firstName,
+        LastName = lastName,
+        Email = email,
+        Role = userRole,
+        IsActive = true, // activé immédiatement, comme demandé
+        CreatedAt = DateTime.UtcNow
+    };
+    user.PasswordHash = _passwordHasher.HashPassword(user, password);
+
+    _context.Users.Add(user);
+    await _context.SaveChangesAsync();
+
+    // Connecte directement l'utilisateur après inscription
+    return (GenerateToken(user), null);
+}
 }

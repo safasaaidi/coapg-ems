@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ReactElement, ReactNode } from 'react';
+import { authService } from "../../features/auth/api/authService";
 import './Layout.css';
+
+export type NavKey = 'dashboard' | 'equipment' | 'sites' | 'departments' | 'requests' | 'preventive' | 'users' | 'analytics';
+export type Language = 'FR' | 'AR' | 'EN';
 
 interface LayoutProps {
   children: ReactNode;
@@ -9,10 +13,8 @@ interface LayoutProps {
   language?: Language;
   onLanguageChange?: (language: Language) => void;
   user?: { name: string; role: string; initials: string };
+  onLogout?: () => void;
 }
-
-export type NavKey = 'dashboard' | 'equipment' | 'sites' | 'departments' | 'requests' | 'preventive' | 'users' | 'analytics';
-export type Language = 'FR' | 'AR' | 'EN';
 
 const NAV_ITEMS: { key: NavKey; labels: Record<Language, string>; icon: ReactElement }[] = [
   { key: 'dashboard', labels: { FR: 'Tableau de bord', EN: 'Dashboard', AR: 'لوحة القيادة' }, icon: <IconGrid /> },
@@ -31,14 +33,46 @@ export function Layout({
   onNavigate,
   language = 'FR',
   onLanguageChange,
-  user = { name: 'Utilisateur', role: 'Compte COPAG', initials: 'U' },
+  user: customUser,
+  onLogout,
 }: LayoutProps) {
   const [lang, setLang] = useState<Language>(language);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    // Si aucun utilisateur n'est passé en prop, on récupère celui du service Auth
+    if (!customUser) {
+      const authUser = authService.getCurrentUser();
+      setCurrentUser(authUser);
+    }
+  }, [customUser]);
 
   function changeLanguage(nextLanguage: Language) {
     setLang(nextLanguage);
     onLanguageChange?.(nextLanguage);
   }
+
+  // Calcul dynamique des informations de l'utilisateur
+  const displayName = customUser?.name || currentUser?.fullName || 'Utilisateur';
+  const displayRole = customUser?.role || currentUser?.role || 'Compte COPAG';
+  const displayInitials =
+    customUser?.initials ||
+    displayName
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) ||
+    'U';
+
+  const handleLogoutClick = () => {
+    if (onLogout) {
+      onLogout();
+    } else {
+      authService.logout();
+      window.location.href = '/login';
+    }
+  };
 
   return (
     <div className="app-shell">
@@ -90,11 +124,19 @@ export function Layout({
           </button>
 
           <div className="user-chip">
-            <div className="user-avatar">{user.initials}</div>
+            <div className="user-avatar">{displayInitials}</div>
             <div className="user-meta">
-              <div className="user-name">{user.name}</div>
-              <div className="user-role">{user.role}</div>
+              <div className="user-name">{displayName}</div>
+              <div className="user-role">{displayRole}</div>
             </div>
+            <button 
+              className="logout-icon-button" 
+              onClick={handleLogoutClick} 
+              title="Se déconnecter"
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginLeft: '8px' }}
+            >
+              🚪
+            </button>
           </div>
         </header>
 
