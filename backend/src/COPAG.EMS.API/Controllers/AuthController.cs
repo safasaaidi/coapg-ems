@@ -1,3 +1,4 @@
+using COPAG.EMS.Application.DTOs;
 using COPAG.EMS.Application.Services;
 using COPAG.EMS.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
@@ -26,47 +27,34 @@ public class AuthController : ControllerBase
         return Ok(new { token });
     }
 
-    [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+   [HttpPost("register")]
+public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+{
+    try
     {
-        try
+        var names = (request.FullName ?? string.Empty).Trim().Split(' ', 2);
+        var firstName = names[0];
+        var lastName = names.Length > 1 ? names[1] : string.Empty;
+
+        // Normalisation et mapping des rôles (Français -> Enum C#)
+        string inputRole = (request.Role ?? string.Empty).Trim();
+        
+        UserRole userRole = inputRole.ToLower() switch
         {
-            // Séparation Prénom / Nom
-            var names = (request.FullName ?? string.Empty).Trim().Split(' ', 2);
-            var firstName = names[0];
-            var lastName = names.Length > 1 ? names[1] : string.Empty;
+            "responsable maintenance" or "responsablemaintenance" or "supervisor" => UserRole.Supervisor,
+            "administrateur" or "admin" => UserRole.admin,
+            "technicien" or "technician" => UserRole.Technician,
+            "demandeur" => UserRole.Demandeur,
+            _ => throw new Exception($"Le rôle '{request.Role}' est invalide.")
+        };
 
-            // Suppression des espaces dans le rôle (ex: "Responsable Maintenance" -> "ResponsableMaintenance")
-            string roleCleaned = (request.Role ?? string.Empty).Replace(" ", "");
-
-            if (!Enum.TryParse<UserRole>(roleCleaned, true, out var userRole))
-            {
-                userRole = UserRole.Technician;
-            }
-
-            // Création dans SQL Server via le UserService
-            var result = await _userService.CreateAsync(firstName, lastName, request.Email, request.Password, userRole);
-            
-            return Ok(new { message = "Compte créé avec succès", userId = result.Id });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var result = await _userService.CreateAsync(firstName, lastName, request.Email, request.Password, userRole);
+        
+        return Ok(new { message = "Compte créé avec succès", userId = result.Id });
+    }
+    catch (Exception ex)
+    {
+        return BadRequest(new { message = ex.Message });
     }
 }
-
-public class LoginRequest
-{
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-}
-
-public class RegisterRequest
-{
-    public string FullName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string Department { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public string Role { get; set; } = string.Empty;
 }

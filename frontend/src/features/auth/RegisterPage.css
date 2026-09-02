@@ -18,8 +18,10 @@
   width: 100%;
   max-width: 440px;
   color: #1e293b;
+  /* Ajouts pour éviter que le menu soit coupé */
+  max-height: 90vh;
+  overflow-y: auto;
 }
-
 .modal-header {
   display: flex;
   justify-content: space-between;

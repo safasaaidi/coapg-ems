@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { authService } from './api/authService';
 import api from '../../services/api';
+
 interface LoginPageProps {
   onLoginSuccess: (userRole?: string) => void;
 }
@@ -27,63 +28,70 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
   // 1. Soumission de la connexion backend
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setErrorMessage('');
+    e.preventDefault();
+    setErrorMessage('');
 
-  if (!email || !password) {
-    setErrorMessage('Veuillez renseigner votre email et votre mot de passe.');
-    return;
-  }
+    if (!email || !password) {
+      setErrorMessage('Veuillez renseigner votre email et votre mot de passe.');
+      return;
+    }
 
-  try {
-    setIsLoading(true);
-    const user = await authService.login(email, password);
-    onLoginSuccess(user.role);
-  } catch (err: any) {
-    console.error('Erreur de connexion:', err);
-    setErrorMessage(
-      err.response?.data?.message || 'Email ou mot de passe incorrect.'
-    );
-  } finally {
-    setIsLoading(false);
-  }
-};
+    try {
+      setIsLoading(true);
+      const user = await authService.login(email, password);
+      onLoginSuccess(user.role);
+    } catch (err: any) {
+      console.error('Erreur de connexion:', err);
+      setErrorMessage(
+        err.response?.data?.message || 'Email ou mot de passe incorrect.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // 2. Connexion Google SSO
   const handleGoogleLogin = () => {
-    // Redirection vers le point d'entrée OAuth de votre API backend .NET
     window.location.href = 'http://localhost:5109/api/auth/google-login';
   };
 
   // 3. Soumission de la demande d'accès
-const handleRegisterSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  try {
-    const [firstName, ...rest] = regFullName.trim().split(' ');
-    const lastName = rest.join(' ') || firstName;
-    const roleMap: Record<string, string> = {
-      'Technicien': 'Technician',
-      'Responsable Maintenance': 'ResponsableMaintenance',
-      'Demandeur': 'Demandeur',
-    };
-    await api.post('/users', {
-      firstName,
-      lastName,
-      email: regEmail,
-      password: regPassword,
-      role: roleMap[regRole],
-    });
-    setRegSuccessMsg("Votre compte a été créé. Un administrateur doit l'activer.");
-    setTimeout(() => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const [firstName, ...rest] = regFullName.trim().split(' ');
+      const lastName = rest.join(' ') || firstName;
+      
+      // Mapping des rôles (Ajout d'Administrateur)
+      const roleMap: Record<string, string> = {
+        'Administrateur': 'admin',
+        'Technicien': 'Technician',
+        'Responsable Maintenance': 'ResponsableMaintenance',
+        'Demandeur': 'Demandeur',
+      };
+
+      await api.post('/auth/register', {
+        firstName,
+        lastName,
+        email: regEmail,
+        password: regPassword,
+        role: roleMap[regRole] || regRole,
+      });
+
+      setRegSuccessMsg("Votre compte a été créé. Un administrateur doit l'activer.");
+      setTimeout(() => {
+        setRegSuccessMsg('');
+        setShowRegisterModal(false);
+        setRegFullName(''); 
+        setRegEmail(''); 
+        setRegDepartment(''); 
+        setRegPassword('');
+      }, 2500);
+    } catch (err: any) {
       setRegSuccessMsg('');
-      setShowRegisterModal(false);
-      setRegFullName(''); setRegEmail(''); setRegDepartment(''); setRegPassword('');
-    }, 2500);
-  } catch (err: any) {
-    setRegSuccessMsg('');
-    alert(err.response?.data?.message || 'Erreur lors de la création du compte.');
-  }
-};
+      alert(err.response?.data?.message || 'Erreur lors de la création du compte.');
+    }
+  };
 
   return (
     <div style={styles.container}>
@@ -139,7 +147,7 @@ const handleRegisterSubmit = async (e: React.FormEvent) => {
                 onClick={() => setShowPassword(!showPassword)}
                 style={styles.togglePasswordBtn}
               >
-                {showPassword ? '👁️' : ' '}
+                {showPassword ? '👁️' : '🔒'}
               </button>
             </div>
           </div>
@@ -165,7 +173,7 @@ const handleRegisterSubmit = async (e: React.FormEvent) => {
 
         {/* Bouton Google */}
         <button type="button" onClick={handleGoogleLogin} style={styles.googleBtn}>
-          <span style={{ marginRight: '8px' }}>🔍</span> Continuer avec Google
+          <span style={{ marginRight: '8px' }}></span> Continuer avec Google
         </button>
 
         {/* Lien Demande d'accès */}
@@ -227,10 +235,18 @@ const handleRegisterSubmit = async (e: React.FormEvent) => {
                     required
                   />
                 </div>
+
                 <div style={styles.fieldGroup}>
-  <label style={styles.label}>MOT DE PASSE</label>
-  <input type="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} style={styles.input} required />
-</div>
+                  <label style={styles.label}>MOT DE PASSE</label>
+                  <input
+                    type="password"
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    style={styles.input}
+                    required
+                  />
+                </div>
+
                 <div style={styles.fieldGroup}>
                   <label style={styles.label}>RÔLE SOUHAITÉ</label>
                   <select
@@ -238,6 +254,7 @@ const handleRegisterSubmit = async (e: React.FormEvent) => {
                     onChange={(e) => setRegRole(e.target.value)}
                     style={styles.input}
                   >
+                    <option value="Administrateur">Administrateur</option>
                     <option value="Technicien">Technicien</option>
                     <option value="Responsable Maintenance">Responsable Maintenance</option>
                     <option value="Demandeur">Demandeur (Opérateur)</option>

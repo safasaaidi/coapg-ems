@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
+import { authService } from '../../features/auth/api/authService';
 import './RegisterPage.css';
 
 interface RegisterModalProps {
@@ -7,21 +8,13 @@ interface RegisterModalProps {
   onClose: () => void;
 }
 
-// Correspondance entre les libellés affichés et les vraies valeurs de l'enum UserRole côté backend
-const ROLE_MAP: Record<string, string> = {
-  Technicien: 'Technician',
-  Responsable: 'ResponsableMaintenance',
-  Operateur: 'Demandeur',
-  Admin: 'Admin',
-};
-
 export function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     department: '',
     password: '',
-    role: 'Technicien',
+    role: 'Technician',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,29 +27,19 @@ export function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
     setError(null);
 
     try {
-      const response = await api.post('/auth/register', {
+      // 1. Envoi explicite du rôle sélectionné
+      await api.post('/auth/register', {
         fullName: formData.fullName,
         email: formData.email,
+        department: formData.department,
         password: formData.password,
-        role: ROLE_MAP[formData.role] ?? 'Demandeur',
+        role: formData.role,
       });
 
-      // Connexion automatique : on stocke le token et l'utilisateur décodé,
-      // exactement comme le fait authService.login()
-      const { token } = response.data;
-      localStorage.setItem('authToken', token);
+      // 2. Authentification et sauvegarde du nouveau token/user
+      await authService.login(formData.email, formData.password);
 
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const user = {
-        id: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'],
-        email: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'],
-        role: payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'],
-        firstName: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'] ?? '',
-        lastName: payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname'] ?? '',
-      };
-      localStorage.setItem('user', JSON.stringify(user));
-
-      // Redirection directe vers le dashboard, sans repasser par l'écran de login
+      // 3. Redirection vers le tableau de bord
       window.location.href = '/dashboard';
     } catch (err: any) {
       setError(err.response?.data?.message || 'Erreur lors de la création du compte.');
@@ -82,7 +65,7 @@ export function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
             <input
               type="text"
               required
-              placeholder="rida saaidi"
+              placeholder="Safa Saidi"
               value={formData.fullName}
               onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
             />
@@ -93,7 +76,7 @@ export function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
             <input
               type="email"
               required
-              placeholder="rida@copag.ma"
+              placeholder="safa@copag.ma"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             />
@@ -125,17 +108,17 @@ export function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
           <div className="form-group">
             <label>RÔLE SOUHAITÉ</label>
             <select
-  name="role"
-  value={formData.role}
-  onChange={handleChange}
-  className="w-full px-3 py-2 border rounded-md"
->
-  <option value="Technician">Technicien</option>
-  <option value="ResponsableMaintenance">Responsable Maintenance</option>
-  <option value="Demandeur">Demandeur</option>
-  <option value="Admin">Administrateur</option>
-  <option value="Lecture">Lecture</option>
-</select>
+              name="role"
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              className="w-full px-3 py-2 border rounded-md"
+            >
+              <option value="admin">Administrateur</option>
+              <option value="Demandeur">Demandeur</option>
+              <option value="Technician">Technicien</option>
+              <option value="Supervisor">Responsable Maintenance</option>
+            </select>
+          </div>
 
           <div className="modal-actions">
             <button type="button" className="btn-cancel" onClick={onClose} disabled={loading}>
