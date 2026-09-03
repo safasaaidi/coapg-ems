@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import api from '../../../services/api';
 import type { RequestDetail } from '../types/maintenance.types';
-import './InterventionPage.css';
+import '../styles/InterventionDetailModal.css';
 
 export interface SparePart {
   id: string;
@@ -10,7 +10,7 @@ export interface SparePart {
   quantity: number;
 }
 
-interface InterventionPageProps {
+interface InterventionDetailModalProps {
   requestDetails: RequestDetail; // vraies données, plus de DEFAULT_REQUEST fictif
   currentUserId: string;         // le technicien connecté
   onCancel?: () => void;
@@ -23,12 +23,12 @@ const OUTCOME_LABELS: Record<string, string> = {
   NonResolu: 'Non résolu',
 };
 
-export function InterventionPage({
+export function InterventionDetailModal({
   requestDetails,
   currentUserId,
   onCancel,
   onSaved,
-}: InterventionPageProps) {
+}: InterventionDetailModalProps) {
   const [diagnosis, setDiagnosis] = useState('');
   const [actions, setActions] = useState('');
   const [downtime, setDowntime] = useState('2.5');

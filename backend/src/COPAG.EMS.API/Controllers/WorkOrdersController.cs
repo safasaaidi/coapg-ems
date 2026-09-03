@@ -68,4 +68,27 @@ public class WorkOrdersController : ControllerBase
         var bytes = csvService.ExportToCsv(requests);
         return File(bytes, "text/csv", $"demandes_maintenance_{DateTime.UtcNow:yyyyMMdd}.csv");
     }
+    [ApiController]
+    [Route("api/[controller]")] // URL : /api/WorkOrders
+    public class WorkOrdersController : ControllerBase
+    {
+    private readonly IWorkOrderService _workOrderService;
+
+    public WorkOrdersController(IWorkOrderService workOrderService)
+    {
+        _workOrderService = workOrderService;
+    }
+
+    [HttpPut("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateWorkOrderStatusDto dto)
+    {
+        var result = await _workOrderService.UpdateStatusAsync(id, dto);
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { message = result.ErrorMessage });
+        }
+
+        return Ok(result.Data);
+    }
+}
 }

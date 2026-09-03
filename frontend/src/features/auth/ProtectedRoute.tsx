@@ -1,51 +1,41 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { authService } from '../services/authService';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; // Ajustez selon votre gestion d'état auth
 
 interface ProtectedRouteProps {
-  allowedRoles?: string[];
+  children: JSX.Element;
+  allowedRoles: string[];
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
-  const isAuthenticated = authService.isAuthenticated();
-  const currentUser = authService.getCurrentUser();
+export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+  const { user } = useAuth(); // Récupère l'utilisateur connecté
 
-  // 1. Rediriger vers le login si l'utilisateur n'est pas connecté
-  if (!isAuthenticated || !currentUser) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  // Si aucun rôle spécifique n'est exigé, autoriser l'accès
-  if (!allowedRoles || allowedRoles.length === 0) {
-    return <Outlet />;
-  }
-
-  // 2. Mappage de correspondance entre les rôles C# Backend et les libellés Frontend
-  const roleAliases: Record<string, string[]> = {
-    admin: ['admin', 'Admin', 'Direction'],
-    Supervisor: ['Supervisor', 'ResponsableMaintenance', 'Responsable', 'SupervisorMaintenance'],
-    Technician: ['Technician', 'Technicien'],
-    Demandeur: ['Demandeur', 'Operateur', 'User']
-  };
-
-  // Récupération du rôle de l'utilisateur connecté
-  const userRole = currentUser.role;
-
-  // Vérification si le rôle de l'utilisateur correspond à l'un des rôles autorisés
+  // Normalisation des rôles pour éviter les blocages dus aux majuscules/minuscules
+  const userRoleNormalized = user.role?.toLowerCase();
+  
   const isAuthorized = allowedRoles.some((role) => {
-    // Vérification directe
-    if (role.toLowerCase() === userRole?.toLowerCase()) return true;
-
-    // Vérification via les alias
-    const aliases = roleAliases[userRole] || [];
-    return aliases.includes(role);
+    const roleNormalized = role.toLowerCase();
+    
+    // Alias : si la route autorise "supervisor", accepter aussi "responsablemaintenance"
+    if (roleNormalized === 'supervisor' && userRoleNormalized === 'responsablemaintenance') {
+      return true;
+    }
+    
+    return roleNormalized === userRoleNormalized;
   });
 
   if (!isAuthorized) {
-    // Si le rôle n'a pas les droits requis
-    return <Navigate to="/unauthorized" replace />;
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', color: '#ffffff' }}>
+        <h2>Accès non autorisé</h2>
+        <p>Vous n'avez pas les permissions nécessaires pour accéder à cette section.</p>
+      </div>
+    );
   }
 
-  // 3. Afficher le composant protégé
-  return <Outlet />;
-};
+  return children;
+}

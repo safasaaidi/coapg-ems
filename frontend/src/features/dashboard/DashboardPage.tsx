@@ -50,7 +50,34 @@ const DEFAULT_DATA: DashboardSummary = {
 
 const COLOR_PALETTE = ['#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#94a3b8'];
 
-// Helper pour calculer les initiales d'un technicien (ex: "Youssef Alami" -> "YA")
+// Transformer les codes de statut API (ex: InProgress, Approved) en libellés compréhensibles
+function formatStatusLabel(statusRaw: any): string {
+  if (!statusRaw || statusRaw === '0') return 'En service';
+  const s = String(statusRaw).toLowerCase();
+
+  if (s === 'inprogress' || s === 'in_progress') return 'En cours';
+  if (s === 'approved' || s === 'approuvé') return 'Approuvé';
+  if (s === 'closed' || s === 'résolu' || s === 'resolu' || s === 'terminé') return 'Résolu';
+  if (s === 'onhold' || s === 'on_hold') return 'En attente';
+  if (s === 'pendingvalidation' || s === 'pending_validation') return 'En validation';
+  
+  return String(statusRaw);
+}
+
+// Transformer les priorités (ex: 0, High, Medium, Low) en libellés français
+function formatPriorityLabel(priorityRaw: any): string {
+  if (priorityRaw === 0 || priorityRaw === '0' || !priorityRaw) return 'Basse';
+  const p = String(priorityRaw).toLowerCase();
+
+  if (p === 'high' || p === 'haute' || p === 'elevee' || p === 'élevée') return 'Élevée';
+  if (p === 'critical' || p === 'critique') return 'Critique';
+  if (p === 'medium' || p === 'moyenne') return 'Moyenne';
+  if (p === 'low' || p === 'basse') return 'Basse';
+
+  return String(priorityRaw);
+}
+
+// Helper pour calculer les initiales d'un technicien
 function getInitials(name?: string): string {
   if (!name || name === 'Non assigné') return 'NA';
   const parts = name.trim().split(' ');
@@ -69,7 +96,7 @@ export function DashboardPage() {
         api.get('/dashboard/kpis'),
         api.get('/dashboard/failures-by-department'),
         api.get('/dashboard/equipment-status'),
-        api.get('/dashboard/recent-interventions'),
+        api.get('/maintenance-requests'),
       ]);
 
       // 1. KPIs
@@ -93,18 +120,22 @@ export function DashboardPage() {
           }))
         : [];
 
-      // 3. Statut Équipement
+      // 3. Statut Équipement (Correction du nom "0")
       const statusData = statusRes.status === 'fulfilled' && Array.isArray(statusRes.value.data)
-        ? statusRes.value.data.map((s: any, i: number) => ({
-            label: s.label ?? s.statusName ?? 'Inconnu',
-            value: Number(s.value ?? s.percentage ?? 0),
-            color: s.color ?? COLOR_PALETTE[i % COLOR_PALETTE.length],
-          }))
+        ? statusRes.value.data.map((s: any, i: number) => {
+            const rawLabel = s.label ?? s.statusName;
+            const cleanLabel = (!rawLabel || rawLabel === '0') ? 'Opérationnel' : rawLabel;
+            return {
+              label: cleanLabel,
+              value: Number(s.value ?? s.percentage ?? 0),
+              color: s.color ?? COLOR_PALETTE[i % COLOR_PALETTE.length],
+            };
+          })
         : [];
 
-      // 4. Interventions récentes
+      // 4. Interventions récentes (Limitées aux 5 plus récentes)
       const rawInterventions = interventionsRes.status === 'fulfilled' && Array.isArray(interventionsRes.value.data)
-        ? interventionsRes.value.data
+        ? interventionsRes.value.data.slice(0, 5)
         : [];
 
       const recentInterventions: Intervention[] = rawInterventions.map((item: any) => ({
@@ -113,8 +144,8 @@ export function DashboardPage() {
         equipment: item.equipmentName ?? item.equipment ?? 'Équipement non spécifié',
         technician: item.technicianName ?? item.technician ?? 'Non assigné',
         technicianInitials: item.technicianInitials ?? getInitials(item.technicianName ?? item.technician),
-        priority: item.priority ?? 'Moyenne',
-        status: item.status ?? 'En attente',
+        priority: formatPriorityLabel(item.priority),
+        status: formatStatusLabel(item.status),
         date: item.createdAt ? new Date(item.createdAt).toLocaleDateString('fr-FR') : (item.date ?? 'Aujourd\'hui'),
       }));
 
@@ -131,12 +162,11 @@ export function DashboardPage() {
     }
   }, []);
 
-  // Polling temps réel (mise à jour toutes les 10 secondes)
   useEffect(() => {
     fetchDashboardData();
     const interval = setInterval(() => {
       fetchDashboardData();
-    }, 10000); // 10 secondes
+    }, 10000);
 
     return () => clearInterval(interval);
   }, [fetchDashboardData]);
@@ -163,7 +193,6 @@ export function DashboardPage() {
 
       {/* Grille des KPIs */}
       <div className="kpi-grid">
-        {/* KPI 1 */}
         <div className="kpi-card">
           <div className="kpi-card-header">
             <span className="kpi-label">TOTAL ÉQUIPEMENTS</span>
@@ -178,12 +207,11 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* KPI 2 */}
         <div className="kpi-card">
           <div className="kpi-card-header">
             <span className="kpi-label">DEMANDES EN COURS</span>
             <div className="kpi-icon-wrapper orange">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 16 14"/></svg>
             </div>
           </div>
           <div className="kpi-value-row">
@@ -195,12 +223,11 @@ export function DashboardPage() {
           <div className="kpi-hint">Demandes en attente</div>
         </div>
 
-        {/* KPI 3 */}
         <div className="kpi-card">
           <div className="kpi-card-header">
             <span className="kpi-label">MTTR</span>
             <div className="kpi-icon-wrapper green">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 16 14"/></svg>
             </div>
           </div>
           <div className="kpi-value">{data.kpis.mttrHours} <span className="unit">h</span></div>
@@ -208,7 +235,6 @@ export function DashboardPage() {
           <div className="kpi-hint">Temps Moyen de Réparation</div>
         </div>
 
-        {/* KPI 4 */}
         <div className="kpi-card">
           <div className="kpi-card-header">
             <span className="kpi-label">MTBF</span>
@@ -224,14 +250,12 @@ export function DashboardPage() {
 
       {/* Grille des Graphiques */}
       <div className="chart-grid">
-        {/* Graphique 1: BarChart */}
         <div className="chart-card">
           <h2>Nombre de Pannes par Département</h2>
           <p className="chart-subtitle">Août 2026</p>
           <BarChart data={data.failuresByDepartment} />
         </div>
 
-        {/* Graphique 2: DonutChart */}
         <div className="chart-card">
           <h2>Répartition par Statut d'Équipement</h2>
           <p className="chart-subtitle">{data.kpis.totalEquipments} équipements au total</p>
@@ -239,7 +263,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Section Dernières Interventions Signalées (Dynamique) */}
+      {/* Section Dernières Interventions Signalées */}
       <div className="recent-interventions-card">
         <div className="recent-interventions-header">
           <div>
@@ -298,47 +322,84 @@ export function DashboardPage() {
   );
 }
 
-// Badges
+// Composants des Badges avec classes CSS distinctes
 function PriorityBadge({ priority }: { priority: string }) {
   const p = priority.toLowerCase();
-  let className = 'priority-badge moyenne';
-  if (p.includes('critique')) className = 'priority-badge critique';
-  else if (p.includes('élevée') || p.includes('elevee') || p.includes('haute')) className = 'priority-badge elevee';
-  else if (p.includes('basse')) className = 'priority-badge basse';
+  let badgeClass = 'badge-priority-low';
 
-  return <span className={className}>{priority}</span>;
+  if (p.includes('critique')) {
+    badgeClass = 'badge-priority-critical';
+  } else if (p.includes('élevée') || p.includes('elevee') || p.includes('haute')) {
+    badgeClass = 'badge-priority-high';
+  } else if (p.includes('moyenne')) {
+    badgeClass = 'badge-priority-medium';
+  }
+
+  return <span className={`priority-badge ${badgeClass}`}>{priority}</span>;
 }
 
 function StatusBadge({ status }: { status: string }) {
   const s = status.toLowerCase();
-  if (s.includes('résolu') || s.includes('resolu') || s.includes('terminé')) {
-    return <span className="status-badge resolved">● Résolu</span>;
+  let statusClass = 'status-in-progress';
+
+  if (s.includes('résolu') || s.includes('resolu') || s.includes('approuvé') || s.includes('approved')) {
+    statusClass = 'status-resolved';
+  } else if (s.includes('validation') || s.includes('attente') || s.includes('hold')) {
+    statusClass = 'status-pending';
   }
-  return <span className="status-badge in-progress">● {status}</span>;
+
+  return (
+    <span className={`status-badge ${statusClass}`}>
+      <span className="dot">●</span> {status}
+    </span>
+  );
 }
 
-// Composants de Graphiques
+// Graphique à Barres avec Axe Y des graduations (0, 5, 10, 15, 20)
 function BarChart({ data }: { data: { label: string; value: number }[] }) {
   if (data.length === 0) {
     return <div className="no-data-msg">Aucune donnée disponible pour le graphique.</div>;
   }
 
-  const max = Math.max(...data.map((d) => d.value), 1);
+  const maxVal = Math.max(...data.map((d) => d.value), 20);
+  // Arrondir au multiple de 5 supérieur pour avoir des graduations propres
+  const yMax = Math.ceil(maxVal / 5) * 5;
+  const ySteps = [yMax, (yMax * 3) / 4, yMax / 2, yMax / 4, 0];
 
   return (
-    <div className="bar-chart">
-      {data.map((d) => (
-        <div key={d.label} className="bar-column">
-          <div className="bar-track">
-            <div
-              className="bar-fill"
-              style={{ height: `${(d.value / max) * 100}%` }}
-              title={`${d.label}: ${d.value}`}
-            />
-          </div>
-          <span className="bar-label">{d.label}</span>
+    <div className="bar-chart-container">
+      {/* Axe Y Numérique */}
+      <div className="chart-y-axis">
+        {ySteps.map((stepVal, idx) => (
+          <span key={idx} className="y-label">
+            {Math.round(stepVal)}
+          </span>
+        ))}
+      </div>
+
+      {/* Zone du graphe avec lignes de grille */}
+      <div className="chart-wrapper">
+        <div className="grid-lines">
+          {ySteps.map((_, idx) => (
+            <div key={idx} className="grid-line" />
+          ))}
         </div>
-      ))}
+
+        <div className="bar-chart">
+          {data.map((d) => (
+            <div key={d.label} className="bar-column">
+              <div className="bar-track">
+                <div
+                  className="bar-fill"
+                  style={{ height: `${(d.value / yMax) * 100}%` }}
+                  title={`${d.label}: ${d.value}`}
+                />
+              </div>
+              <span className="bar-label">{d.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

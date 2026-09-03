@@ -1,23 +1,26 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import '../styles/KanbanBoard.css';
 import type { RequestCard, Status, Priority } from '../types/maintenance.types';
 
-// Traduction UNIQUEMENT pour l'affichage — les vraies valeurs échangées avec l'API restent en anglais
-const COLUMNS: { key: Status; label: string; color: string }[] = [
-  { key: 'New', label: 'Nouveau', color: '#60a5fa' },
-  { key: 'PendingValidation', label: 'Qualifié', color: '#a78bfa' },
-  { key: 'Approved', label: 'Affecté', color: '#38bdf8' },
-  { key: 'InProgress', label: 'En cours', color: '#f59e0b' },
-  { key: 'OnHold', label: 'En attente', color: '#fb923c' },
-  { key: 'Completed', label: 'Résolu', color: '#4ade80' },
-  { key: 'Closed', label: 'Clôturé', color: '#94a3b8' },
+const COLUMNS: { key: Status; label: string; color: string; classSuffix: string }[] = [
+  { key: 'New', label: 'Nouveau', color: '#6b7280', classSuffix: 'nouveau' },
+  { key: 'PendingValidation', label: 'Qualifié', color: '#8b5cf6', classSuffix: 'qualifie' },
+  { key: 'Approved', label: 'Affecté', color: '#3b82f6', classSuffix: 'affecte' },
+  { key: 'InProgress', label: 'En Cours', color: '#eab308', classSuffix: 'encours' },
+  { key: 'OnHold', label: 'En Attente', color: '#f97316', classSuffix: 'enattente' },
+  { key: 'Completed', label: 'Résolu', color: '#10b981', classSuffix: 'resolu' },
+  { key: 'Closed', label: 'Clôturé', color: '#059669', classSuffix: 'cloture' },
 ];
 
-const PRIORITY_LABEL: Record<Priority, string> = {
-  Low: 'Faible',
-  Medium: 'Moyenne',
-  High: 'Élevée',
-  Critical: 'Critique',
+const PRIORITY_BADGES: Record<string, { label: string; className: string }> = {
+  Critical: { label: 'Critique', className: 'p-badge-critical' },
+  High: { label: 'Élevée', className: 'p-badge-high' },
+  Medium: { label: 'Moyenne', className: 'p-badge-medium' },
+  Low: { label: 'Basse', className: 'p-badge-low' },
+  '3': { label: 'Critique', className: 'p-badge-critical' },
+  '2': { label: 'Élevée', className: 'p-badge-high' },
+  '1': { label: 'Moyenne', className: 'p-badge-medium' },
+  '0': { label: 'Basse', className: 'p-badge-low' },
 };
 
 interface KanbanBoardProps {
@@ -29,8 +32,11 @@ interface KanbanBoardProps {
   onRefresh: () => void;
   onNewRequest?: () => void;
   onOpenCard?: (id: string) => void;
-  // currentUserId : id de l'utilisateur connecté, requis par le backend pour la traçabilité (RG-10)
   onStatusChange: (id: string, newStatus: Status) => Promise<void>;
+  activeView: 'kanban' | 'list';
+  onViewChange: (view: 'kanban' | 'list') => void;
+  selectedPriority: string;
+  onPrioritySelect: (priority: string) => void;
 }
 
 export function KanbanBoard({
@@ -43,6 +49,10 @@ export function KanbanBoard({
   onNewRequest,
   onOpenCard,
   onStatusChange,
+  activeView,
+  onViewChange,
+  selectedPriority,
+  onPrioritySelect,
 }: KanbanBoardProps) {
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<Status | null>(null);
@@ -60,7 +70,6 @@ export function KanbanBoard({
 
   const handleDragOver = (e: React.DragEvent, status: Status) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
     if (dragOverColumn !== status) setDragOverColumn(status);
   };
 
@@ -85,106 +94,227 @@ export function KanbanBoard({
     try {
       await onStatusChange(cardId, targetStatus);
     } catch {
-      alert('Erreur lors de la mise à jour du statut — transition peut-être non autorisée.');
+      alert('Erreur lors de la mise à jour du statut.');
     } finally {
       setDraggedCardId(null);
     }
   };
 
-  const currentDateFormatted = new Date().toLocaleDateString('fr-FR', {
-    day: 'numeric', month: 'long', year: 'numeric',
+  // Compteurs par priorité
+  const countAll = requests.length;
+  const countCritical = requests.filter((r) => String(r.priority) === 'Critical' || String(r.priority) === '3').length;
+  const countHigh = requests.filter((r) => String(r.priority) === 'High' || String(r.priority) === '2').length;
+  const countMedium = requests.filter((r) => String(r.priority) === 'Medium' || String(r.priority) === '1').length;
+  const countLow = requests.filter((r) => String(r.priority) === 'Low' || String(r.priority) === '0').length;
+
+  const filteredRequests = requests.filter((r) => {
+    if (selectedPriority === 'ALL') return true;
+    const p = String(r.priority);
+    if (selectedPriority === 'Critical') return p === 'Critical' || p === '3';
+    if (selectedPriority === 'High') return p === 'High' || p === '2';
+    if (selectedPriority === 'Medium') return p === 'Medium' || p === '1';
+    if (selectedPriority === 'Low') return p === 'Low' || p === '0';
+    return true;
   });
 
   return (
-    <div className="kanban-page">
-      <div className="kanban-toolbar">
+    <div className="kanban-wrapper">
+      {/* Dynamic Header */}
+      <div className="kanban-header-bar">
         <div>
-          <h1>Tableau Kanban des Demandes de Maintenance</h1>
-          <p>
-            {currentDateFormatted} · {requests.length} demande{requests.length > 1 ? 's' : ''} affichée{requests.length > 1 ? 's' : ''}
+          <h1 className="kanban-main-title">Tableau Kanban des Demandes de Maintenance</h1>
+          <p className="kanban-sub-title">
+            {countAll} demandes · {countCritical} critiques · Août 2026
           </p>
         </div>
-        <div className="kanban-toolbar-actions">
-          <input
-            className="kanban-search"
-            type="search"
-            placeholder="Rechercher par ticket, équipement ou technicien…"
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
-          <button type="button" className="btn-primary" onClick={onNewRequest}>
-            + Nouvelle Demande
-          </button>
+
+        <div className="kanban-top-actions">
+          <div className="search-input-wrapper">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              className="kanban-search-input"
+              placeholder="Rechercher..."
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
+          </div>
+
+          <div className="view-mode-selector">
+            <button
+              type="button"
+              className={`view-btn ${activeView === 'list' ? 'active' : ''}`}
+              onClick={() => onViewChange('list')}
+            >
+              ☰ Vue Liste
+            </button>
+            <button
+              type="button"
+              className={`view-btn ${activeView === 'kanban' ? 'active' : ''}`}
+              onClick={() => onViewChange('kanban')}
+            >
+              ░ Vue Kanban
+            </button>
+          </div>
+
+          {onNewRequest && (
+            <button type="button" className="btn-add-request" onClick={onNewRequest}>
+              + Nouvelle Demande
+            </button>
+          )}
         </div>
+      </div>
+
+      {/* Segmented Status Progress Bar */}
+      <div className="segmented-progress-card">
+        <div className="segmented-bar">
+          {COLUMNS.map((col) => {
+            const count = requests.filter((r) => r.status === col.key).length;
+            return (
+              <div key={col.key} className="segment-col">
+                <div className="segment-top">
+                  <span className="dot-indicator" style={{ backgroundColor: col.color }} />
+                  <span>{col.label}</span>
+                </div>
+                <div className="segment-line-track">
+                  <div
+                    className="segment-line-fill"
+                    style={{
+                      backgroundColor: col.color,
+                      width: count > 0 ? '100%' : '0%',
+                    }}
+                  />
+                </div>
+                <span className="segment-count">{count}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Priority Pill Filters */}
+      <div className="priority-pills-bar">
+        <button
+          type="button"
+          className={`pill-btn ${selectedPriority === 'ALL' ? 'active' : ''}`}
+          onClick={() => onPrioritySelect('ALL')}
+        >
+          Toutes ({countAll})
+        </button>
+        <button
+          type="button"
+          className={`pill-btn pill-critical ${selectedPriority === 'Critical' ? 'active' : ''}`}
+          onClick={() => onPrioritySelect('Critical')}
+        >
+          ● Critique ({countCritical})
+        </button>
+        <button
+          type="button"
+          className={`pill-btn pill-high ${selectedPriority === 'High' ? 'active' : ''}`}
+          onClick={() => onPrioritySelect('High')}
+        >
+          ● Élevée ({countHigh})
+        </button>
+        <button
+          type="button"
+          className={`pill-btn pill-medium ${selectedPriority === 'Medium' ? 'active' : ''}`}
+          onClick={() => onPrioritySelect('Medium')}
+        >
+          ● Moyenne ({countMedium})
+        </button>
+        <button
+          type="button"
+          className={`pill-btn pill-low ${selectedPriority === 'Low' ? 'active' : ''}`}
+          onClick={() => onPrioritySelect('Low')}
+        >
+          ● Basse ({countLow})
+        </button>
       </div>
 
       {error && (
         <div className="kanban-error-banner">
           <span>{error}</span>
-          <button type="button" className="kanban-error-retry" onClick={onRefresh}>
-            Réessayer
-          </button>
+          <button type="button" onClick={onRefresh}>Réessayer</button>
         </div>
       )}
 
+      {/* Grid Columns */}
       {loading ? (
-        <div className="kanban-loading">Chargement des demandes de maintenance...</div>
+        <div className="kanban-loading">Chargement...</div>
       ) : (
-        <div className="kanban-board">
+        <div className="kanban-grid-container">
           {COLUMNS.map((col) => {
-            const cards = requests.filter((r) => r.status === col.key);
-            const isColumnActive = dragOverColumn === col.key;
+            const cards = filteredRequests.filter((r) => r.status === col.key);
+            const isOver = dragOverColumn === col.key;
 
             return (
               <div
                 key={col.key}
-                className={`kanban-column ${isColumnActive ? 'is-drag-over' : ''}`}
+                className={`kanban-col-box col-theme-${col.classSuffix} ${isOver ? 'is-drag-over' : ''}`}
                 onDragOver={(e) => handleDragOver(e, col.key)}
                 onDragLeave={(e) => handleDragLeave(e, col.key)}
                 onDrop={(e) => handleDrop(e, col.key)}
               >
-                <div className="kanban-column-header">
-                  <span className="kanban-dot" style={{ backgroundColor: col.color }} />
-                  <span className="kanban-column-title">{col.label}</span>
-                  <span className="kanban-count">{cards.length}</span>
+                <div className="kanban-col-header">
+                  <div className="col-header-left">
+                    <span className="dot-indicator" style={{ backgroundColor: col.color }} />
+                    <span className="col-title-text">{col.label}</span>
+                  </div>
+                  <span className="col-badge-count">{cards.length}</span>
                 </div>
 
-                <div className="kanban-column-body">
+                <div className="kanban-col-cards">
                   {cards.map((card) => {
-                    const isDraggingThis = draggedCardId === card.id;
+                    const isDragging = draggedCardId === card.id;
+                    const pInfo = PRIORITY_BADGES[String(card.priority)] || PRIORITY_BADGES.Medium;
+
                     return (
                       <div
                         key={card.id}
-                        className={`kanban-card ${isDraggingThis ? 'is-dragging' : ''}`}
+                        className={`card-item ${isDragging ? 'dragging' : ''}`}
                         draggable
                         onDragStart={(e) => handleDragStart(e, card.id)}
                         onDragEnd={handleDragEnd}
                         onClick={() => onOpenCard?.(card.id)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            onOpenCard?.(card.id);
-                          }
-                        }}
                       >
-                        <div className="kanban-card-top">
-                          <span className="kanban-card-id">{card.ticketNumber}</span>
-                          <span
-                            className={`priority-dot priority-${card.priority.toLowerCase()}`}
-                            title={`Priorité : ${PRIORITY_LABEL[card.priority]}`}
-                          />
+                        <div className="card-item-header">
+                          <span className="card-ticket-id">{card.ticketNumber}</span>
+                          <span className={`priority-tag ${pInfo.className}`}>
+                            ● {pInfo.label}
+                          </span>
                         </div>
-                        <div className="kanban-card-equipment">{card.equipmentName}</div>
-                        <div className="kanban-card-footer">
-                          <span>{card.assignedTechnicianName ?? 'Non assigné'}</span>
-                          <span>{new Date(card.reportedAt).toLocaleDateString('fr-FR')}</span>
+
+                        <div className="card-equipment-title">{card.equipmentName}</div>
+
+                        <div className="card-tags-row">
+                          <span className="type-badge corrective">Corrective</span>
+                          {card.status === 'Completed' || card.status === 'Closed' ? (
+                            <span className="type-badge valid">● Validé</span>
+                          ) : null}
+                        </div>
+
+                        <div className="card-item-footer">
+                          <div className="user-avatar-info">
+                            <div className="mini-avatar">
+                              {card.assignedTechnicianName
+                                ? card.assignedTechnicianName.substring(0, 2).toUpperCase()
+                                : 'NA'}
+                            </div>
+                            <div className="user-text-details">
+                              <span className="tech-name">
+                                {card.assignedTechnicianName ?? 'Non assigné'}
+                              </span>
+                              <span className="tech-role">Technicien</span>
+                            </div>
+                          </div>
+                          <span className="card-date-text">
+                            {new Date(card.reportedAt).toLocaleDateString('fr-FR')}
+                          </span>
                         </div>
                       </div>
                     );
                   })}
-                  {cards.length === 0 && <div className="kanban-empty">—</div>}
+                  {cards.length === 0 && <div className="kanban-empty-slot">Aucune demande</div>}
                 </div>
               </div>
             );
