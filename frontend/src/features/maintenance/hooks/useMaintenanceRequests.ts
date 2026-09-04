@@ -15,7 +15,8 @@ export function useMaintenanceRequests() {
       const data = await maintenanceService.getRequests();
       setRequests(data);
     } catch (err: any) {
-      setError(err.message || 'Impossible de charger les demandes de maintenance.');
+      const serverMessage = err?.response?.data?.message || err?.message || 'Impossible de charger les demandes de maintenance.';
+      setError(serverMessage);
     } finally {
       setLoading(false);
     }
@@ -36,11 +37,11 @@ export function useMaintenanceRequests() {
     );
   }, [search, requests]);
 
-  // changedByUserId : à remplacer par l'id de l'utilisateur connecté (récupéré depuis le contexte d'auth)
   const updateRequestStatus = useCallback(
-    async (id: string, payload: ChangeStatusPayload) => {
+    async (id: string, payload: ChangeStatusPayload | any) => {
       const previousRequests = [...requests];
 
+      // Mise à jour optimiste de l'interface
       setRequests((prev) =>
         prev.map((r) => (r.id === id ? { ...r, status: payload.newStatus } : r))
       );
@@ -48,8 +49,12 @@ export function useMaintenanceRequests() {
       try {
         await maintenanceService.updateStatus(id, payload);
       } catch (err: any) {
+        // En cas d'erreur, on annule la mise à jour optimiste
         setRequests(previousRequests);
-        throw new Error(err.message || 'Échec de la mise à jour sur le serveur.');
+
+        // PROPAGATION DE L'ERREUR COMPLÈTE :
+        // On relance l'objet d'erreur Axios brut pour que MaintenancePage puisse extraire err.response.data
+        throw err;
       }
     },
     [requests]

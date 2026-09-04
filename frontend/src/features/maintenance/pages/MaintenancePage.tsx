@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { RequestDetailsModal } from '../components/RequestDetailsModal';
 import { CreateMaintenanceRequestModal } from '../components/CreateMaintenanceRequestModal';
@@ -8,30 +8,27 @@ import { useMaintenanceRequests } from '../hooks/useMaintenanceRequests';
 import { maintenanceService } from '../api/maintenanceService';
 import { authService } from '../../auth/api/authService';
 import api from '../../../services/api';
-import type { RequestDetail, Status, Priority } from '../types/maintenance.types';
+import type { RequestDetail, Status } from '../types/maintenance.types';
 
 type ActiveView = 'kanban' | 'list' | 'intervention';
 
-const STATUS_LABELS: Record<Status, string> = {
-  New: 'Nouveau',
-  PendingValidation: 'Qualifié',
-  Approved: 'Affecté',
-  InProgress: 'En cours',
-  OnHold: 'En attente',
-  Completed: 'Résolu',
-  Closed: 'Clôturé',
-  Rejected: 'Rejeté',
+// Mapping des statuts texte vers les entiers Enum attendus par le Backend C#
+const STATUS_TO_INT: Record<Status, number> = {
+  New: 0,
+  PendingValidation: 1,
+  Approved: 2,
+  InProgress: 3,
+  OnHold: 4,
+  Completed: 5,
+  Closed: 6,
+  Rejected: 7,
 };
 
-const PRIORITY_LABELS: Record<string, string> = {
-  Low: 'Faible',
-  Medium: 'Moyenne',
-  High: 'Élevée',
-  Critical: 'Critique',
-  '0': 'Faible',
-  '1': 'Moyenne',
-  '2': 'Élevée',
-  '3': 'Critique',
+// GUID par défaut si l'ID utilisateur est absent ou invalide (évite le crash du parser C#)
+const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
+
+const isValidGuid = (id: string): boolean => {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 };
 
 export function MaintenancePage() {
@@ -69,13 +66,32 @@ export function MaintenancePage() {
   }, []);
 
   const handleStatusChange = async (id: string, newStatus: Status) => {
-    try {
-      await updateRequestStatus(id, { newStatus, changedByUserId: currentUserId });
-    } catch (err) {
-      console.error("Erreur de changement de statut :", err);
-      throw err; // Permet à KanbanBoard d'annuler le déplacement de la carte
-    }
-  };
+  try {
+    // Utilise le vrai GUID de l'utilisateur connecté s'il est valide, sinon null
+    const sanitizedUserId = currentUserId && isValidGuid(currentUserId) 
+      ? currentUserId 
+      : null;
+
+    const statusPayload = {
+      newStatus: newStatus,
+      status: STATUS_TO_INT[newStatus],
+      statusValue: STATUS_TO_INT[newStatus],
+      changedByUserId: sanitizedUserId,
+    };
+
+    await updateRequestStatus(id, statusPayload as any);
+  } catch (err: any) {
+    console.error("Détails de l'erreur API statut :", err);
+
+    const apiErrorMessage =
+      err?.response?.data?.detail ||
+      err?.response?.data?.title ||
+      err?.response?.data?.message ||
+      err?.message;
+
+    throw new Error(apiErrorMessage || 'Erreur lors de la mise à jour du statut.');
+  }
+};
 
   const handleOpenIntervention = async (id: string) => {
     try {
@@ -94,11 +110,6 @@ export function MaintenancePage() {
     refreshRequests();
   };
 
-  const displayedRequests = useMemo(() => {
-    if (priorityFilter === 'ALL') return requests;
-    return requests.filter((r) => String(r.priority).toLowerCase() === priorityFilter.toLowerCase());
-  }, [requests, priorityFilter]);
-
   if (view === 'intervention' && interventionTarget) {
     return (
       <InterventionDetailModal
@@ -112,100 +123,22 @@ export function MaintenancePage() {
 
   return (
     <div className="maintenance-feature-container p-4">
-      {view === 'kanban' ? (
-        <KanbanBoard
-          requests={displayedRequests}
-          loading={loading}
-          error={error}
-          search={search}
-          onSearchChange={setSearch}
-          onRefresh={refreshRequests}
-          onNewRequest={() => setIsCreateModalOpen(true)}
-          onOpenCard={(id) => setSelectedRequestId(id)}
-          onStatusChange={handleStatusChange}
-          view={view}
-          onViewChange={(newView: string) => setView(newView as ActiveView)}
-        />
-      ) : (
-        <div className="maintenance-list-view">
-          <div className="list-header flex justify-between items-center mb-4">
-            <div className="flex items-center gap-4">
-              <h2 className="text-xl font-bold text-white">Liste des Demandes</h2>
-              <button
-                type="button"
-                className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded-md text-sm"
-                onClick={() => setView('kanban')}
-              >
-                ← Vue Kanban
-              </button>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="filter-group flex items-center gap-2">
-                <label htmlFor="priority-filter" className="text-sm text-gray-300">Priorité :</label>
-                <select
-                  id="priority-filter"
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="bg-gray-800 text-white border border-gray-700 rounded-md px-2 py-1 text-sm"
-                >
-                  <option value="ALL">Toutes les priorités</option>
-                  <option value="Low">Faible</option>
-                  <option value="Medium">Moyenne</option>
-                  <option value="High">Élevée</option>
-                  <option value="Critical">Critique</option>
-                </select>
-              </div>
-
-              <button 
-                type="button" 
-                className="btn-primary bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md font-medium" 
-                onClick={() => setIsCreateModalOpen(true)}
-              >
-                + Nouvelle Demande
-              </button>
-            </div>
-          </div>
-
-          <table className="maintenance-table w-full text-left">
-            <thead>
-              <tr>
-                <th>N° Ticket</th>
-                <th>Équipement</th>
-                <th>Priorité</th>
-                <th>Statut</th>
-                <th>Technicien</th>
-                <th>Date Signalement</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayedRequests.map((req) => (
-                <tr key={req.id} onClick={() => setSelectedRequestId(req.id)} className="clickable-row">
-                  <td className="ticket-cell">{req.ticketNumber}</td>
-                  <td>{req.equipmentName}</td>
-                  <td>
-                    <span className={`priority-badge priority-${String(req.priority).toLowerCase()}`}>
-                      {PRIORITY_LABELS[String(req.priority)] || req.priority}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`status-badge status-${req.status.toLowerCase()}`}>
-                      {STATUS_LABELS[req.status] || req.status}
-                    </span>
-                  </td>
-                  <td>{req.assignedTechnicianName ?? 'Non assigné'}</td>
-                  <td>{new Date(req.reportedAt).toLocaleDateString('fr-FR')}</td>
-                </tr>
-              ))}
-              {displayedRequests.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="text-center py-4">Aucune demande trouvée.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <KanbanBoard
+        requests={requests}
+        loading={loading}
+        error={error}
+        search={search}
+        onSearchChange={setSearch}
+        onRefresh={refreshRequests}
+        onNewRequest={() => setIsCreateModalOpen(true)}
+        onOpenCard={(id) => setSelectedRequestId(id)}
+        onStatusChange={handleStatusChange}
+        activeView={view === 'list' ? 'list' : 'kanban'}
+        view={view === 'list' ? 'list' : 'kanban'}
+        onViewChange={(newView) => setView(newView as ActiveView)}
+        selectedPriority={priorityFilter}
+        onPrioritySelect={setPriorityFilter}
+      />
 
       <CreateMaintenanceRequestModal
         isOpen={isCreateModalOpen}

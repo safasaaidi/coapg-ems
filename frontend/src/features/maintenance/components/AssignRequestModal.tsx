@@ -3,7 +3,9 @@ import '../styles/QualifyRequestModal.css';
 import { maintenanceService } from '../api/maintenanceService';
 import api from '../../../services/api';
 import type { RequestDetail } from '../types/maintenance.types';
-
+// En haut de CreateMaintenanceRequestModal.tsx
+import { equipmentService } from "../../../services/equipmentService";
+// (Ajustez le chemin relatif selon la structure exacte de vos dossiers d'équipements)
 type MaintenanceType = 'Corrective' | 'Preventive' | 'Amelioration' | 'Inspection';
 
 interface Technician {

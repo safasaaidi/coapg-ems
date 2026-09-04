@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent, ChangeEvent } from 'react';
-//import { maintenanceService } from '../api/maintenanceService';
-//import { equipmentService } from '../../equipment/api/equipmentService';
+import { maintenanceService } from '../api/maintenanceService';
+import { equipmentService } from '../../../services/equipmentService';
 import '../styles/CreateMaintenanceRequestModal.css';
 
 const PRIORITIES: { value: number; key: string; label: string }[] = [

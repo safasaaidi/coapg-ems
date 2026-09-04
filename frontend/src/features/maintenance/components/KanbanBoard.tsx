@@ -23,6 +23,17 @@ const PRIORITY_BADGES: Record<string, { label: string; className: string }> = {
   '0': { label: 'Basse', className: 'p-badge-low' },
 };
 
+const STATUS_CONFIG: Record<Status, { label: string; color: string; badgeClass: string }> = {
+  New: { label: 'Nouveau', color: '#6b7280', badgeClass: 'status-badge-nouveau' },
+  PendingValidation: { label: 'Qualifié', color: '#8b5cf6', badgeClass: 'status-badge-qualifie' },
+  Approved: { label: 'Affecté', color: '#3b82f6', badgeClass: 'status-badge-affecte' },
+  InProgress: { label: 'En cours', color: '#eab308', badgeClass: 'status-badge-encours' },
+  OnHold: { label: 'En attente', color: '#f97316', badgeClass: 'status-badge-enattente' },
+  Completed: { label: 'Résolu', color: '#10b981', badgeClass: 'status-badge-resolu' },
+  Closed: { label: 'Clôturé', color: '#059669', badgeClass: 'status-badge-cloture' },
+  Rejected: { label: 'Rejeté', color: '#ef4444', badgeClass: 'status-badge-nouveau' },
+};
+
 interface KanbanBoardProps {
   requests: RequestCard[];
   loading: boolean;
@@ -33,10 +44,11 @@ interface KanbanBoardProps {
   onNewRequest?: () => void;
   onOpenCard?: (id: string) => void;
   onStatusChange: (id: string, newStatus: Status) => Promise<void>;
-  activeView: 'kanban' | 'list';
+  activeView?: 'kanban' | 'list';
+  view?: 'kanban' | 'list';
   onViewChange: (view: 'kanban' | 'list') => void;
-  selectedPriority: string;
-  onPrioritySelect: (priority: string) => void;
+  selectedPriority?: string;
+  onPrioritySelect?: (priority: string) => void;
 }
 
 export function KanbanBoard({
@@ -50,12 +62,15 @@ export function KanbanBoard({
   onOpenCard,
   onStatusChange,
   activeView,
+  view,
   onViewChange,
-  selectedPriority,
+  selectedPriority = 'ALL',
   onPrioritySelect,
 }: KanbanBoardProps) {
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<Status | null>(null);
+
+  const currentView = activeView || view || 'kanban';
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedCardId(id);
@@ -93,8 +108,9 @@ export function KanbanBoard({
 
     try {
       await onStatusChange(cardId, targetStatus);
-    } catch {
-      alert('Erreur lors de la mise à jour du statut.');
+    } catch (err: any) {
+      // Affiche le vrai message renvoyé par votre API au lieu d'un message générique
+      alert(err?.message || 'Erreur lors de la mise à jour du statut.');
     } finally {
       setDraggedCardId(null);
     }
@@ -108,23 +124,39 @@ export function KanbanBoard({
   const countLow = requests.filter((r) => String(r.priority) === 'Low' || String(r.priority) === '0').length;
 
   const filteredRequests = requests.filter((r) => {
-    if (selectedPriority === 'ALL') return true;
-    const p = String(r.priority);
-    if (selectedPriority === 'Critical') return p === 'Critical' || p === '3';
-    if (selectedPriority === 'High') return p === 'High' || p === '2';
-    if (selectedPriority === 'Medium') return p === 'Medium' || p === '1';
-    if (selectedPriority === 'Low') return p === 'Low' || p === '0';
+    // Filtre Priorité
+    if (selectedPriority !== 'ALL') {
+      const p = String(r.priority);
+      if (selectedPriority === 'Critical' && p !== 'Critical' && p !== '3') return false;
+      if (selectedPriority === 'High' && p !== 'High' && p !== '2') return false;
+      if (selectedPriority === 'Medium' && p !== 'Medium' && p !== '1') return false;
+      if (selectedPriority === 'Low' && p !== 'Low' && p !== '0') return false;
+    }
+
+    // Filtre Recherche
+    if (search && search.trim() !== '') {
+      const q = search.toLowerCase();
+      const ticket = (r.ticketNumber || '').toLowerCase();
+      const equipment = (r.equipmentName || '').toLowerCase();
+      const tech = (r.assignedTechnicianName || '').toLowerCase();
+      if (!ticket.includes(q) && !equipment.includes(q) && !tech.includes(q)) {
+        return false;
+      }
+    }
+
     return true;
   });
 
   return (
     <div className="kanban-wrapper">
-      {/* Dynamic Header */}
+      {/* En-tête Dynamique */}
       <div className="kanban-header-bar">
         <div>
-          <h1 className="kanban-main-title">Tableau Kanban des Demandes de Maintenance</h1>
+          <h1 className="kanban-main-title">
+            {currentView === 'kanban' ? 'Tableau Kanban des Demandes' : 'Liste des Demandes de Maintenance'}
+          </h1>
           <p className="kanban-sub-title">
-            {countAll} demandes · {countCritical} critiques · Août 2026
+            {countAll} demandes au total · {countCritical} critiques
           </p>
         </div>
 
@@ -134,7 +166,7 @@ export function KanbanBoard({
             <input
               type="text"
               className="kanban-search-input"
-              placeholder="Rechercher..."
+              placeholder="Rechercher ticket, matériel..."
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
             />
@@ -143,14 +175,14 @@ export function KanbanBoard({
           <div className="view-mode-selector">
             <button
               type="button"
-              className={`view-btn ${activeView === 'list' ? 'active' : ''}`}
+              className={`view-btn ${currentView === 'list' ? 'active' : ''}`}
               onClick={() => onViewChange('list')}
             >
               ☰ Vue Liste
             </button>
             <button
               type="button"
-              className={`view-btn ${activeView === 'kanban' ? 'active' : ''}`}
+              className={`view-btn ${currentView === 'kanban' ? 'active' : ''}`}
               onClick={() => onViewChange('kanban')}
             >
               ░ Vue Kanban
@@ -165,7 +197,7 @@ export function KanbanBoard({
         </div>
       </div>
 
-      {/* Segmented Status Progress Bar */}
+      {/* Cartes KPI / Barre de progression des statuts */}
       <div className="segmented-progress-card">
         <div className="segmented-bar">
           {COLUMNS.map((col) => {
@@ -192,40 +224,40 @@ export function KanbanBoard({
         </div>
       </div>
 
-      {/* Priority Pill Filters */}
+      {/* Pilules de filtres de priorité */}
       <div className="priority-pills-bar">
         <button
           type="button"
           className={`pill-btn ${selectedPriority === 'ALL' ? 'active' : ''}`}
-          onClick={() => onPrioritySelect('ALL')}
+          onClick={() => onPrioritySelect?.('ALL')}
         >
           Toutes ({countAll})
         </button>
         <button
           type="button"
           className={`pill-btn pill-critical ${selectedPriority === 'Critical' ? 'active' : ''}`}
-          onClick={() => onPrioritySelect('Critical')}
+          onClick={() => onPrioritySelect?.('Critical')}
         >
           ● Critique ({countCritical})
         </button>
         <button
           type="button"
           className={`pill-btn pill-high ${selectedPriority === 'High' ? 'active' : ''}`}
-          onClick={() => onPrioritySelect('High')}
+          onClick={() => onPrioritySelect?.('High')}
         >
           ● Élevée ({countHigh})
         </button>
         <button
           type="button"
           className={`pill-btn pill-medium ${selectedPriority === 'Medium' ? 'active' : ''}`}
-          onClick={() => onPrioritySelect('Medium')}
+          onClick={() => onPrioritySelect?.('Medium')}
         >
           ● Moyenne ({countMedium})
         </button>
         <button
           type="button"
           className={`pill-btn pill-low ${selectedPriority === 'Low' ? 'active' : ''}`}
-          onClick={() => onPrioritySelect('Low')}
+          onClick={() => onPrioritySelect?.('Low')}
         >
           ● Basse ({countLow})
         </button>
@@ -238,10 +270,11 @@ export function KanbanBoard({
         </div>
       )}
 
-      {/* Grid Columns */}
+      {/* Chargement */}
       {loading ? (
         <div className="kanban-loading">Chargement...</div>
-      ) : (
+      ) : currentView === 'kanban' ? (
+        /* VUE KANBAN (GRILLE) */
         <div className="kanban-grid-container">
           {COLUMNS.map((col) => {
             const cards = filteredRequests.filter((r) => r.status === col.key);
@@ -319,6 +352,72 @@ export function KanbanBoard({
               </div>
             );
           })}
+        </div>
+      ) : (
+        /* VUE LISTE (TABLEAU SOMBRE STYLISÉ COPAG EMS) */
+        <div className="kanban-table-wrapper">
+          <table className="kanban-table">
+            <thead>
+              <tr>
+                <th>N° Ticket</th>
+                <th>Équipement</th>
+                <th>Priorité</th>
+                <th>Statut</th>
+                <th>Technicien</th>
+                <th>Date Signalement</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRequests.map((req) => {
+                const pInfo = PRIORITY_BADGES[String(req.priority)] || PRIORITY_BADGES.Medium;
+                const statusInfo = STATUS_CONFIG[req.status] || STATUS_CONFIG.New;
+
+                return (
+                  <tr key={req.id} onClick={() => onOpenCard?.(req.id)} className="table-row-clickable">
+                    <td className="ticket-code-cell">{req.ticketNumber}</td>
+                    <td className="equipment-cell">{req.equipmentName}</td>
+                    <td>
+                      <span className={`priority-tag ${pInfo.className}`}>
+                        ● {pInfo.label}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`table-status-badge ${statusInfo.badgeClass}`}>
+                        <span className="dot-indicator" style={{ backgroundColor: statusInfo.color }} />
+                        {statusInfo.label}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="user-avatar-info">
+                        <div className="mini-avatar">
+                          {req.assignedTechnicianName
+                            ? req.assignedTechnicianName.substring(0, 2).toUpperCase()
+                            : 'NA'}
+                        </div>
+                        <div className="user-text-details">
+                          <span className="tech-name">{req.assignedTechnicianName ?? 'Non assigné'}</span>
+                          <span className="tech-role">Technicien</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="card-date-text">
+                      {new Date(req.reportedAt).toLocaleDateString('fr-FR')}
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredRequests.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="kanban-empty-slot">
+                    Aucune demande trouvée pour ces critères.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          <div className="kanban-table-footer">
+            <span>Affichage de <strong>{filteredRequests.length}</strong> sur <strong>{requests.length}</strong> demandes</span>
+          </div>
         </div>
       )}
     </div>

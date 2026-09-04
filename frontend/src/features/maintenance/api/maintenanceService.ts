@@ -3,7 +3,7 @@ import type {
   CreateRequestPayload, CreateInterventionPayload,
 } from '../types/maintenance.types';
 import api from '../../../services/api';
-
+import type { Status } from '../types/maintenance.types';
 const BASE_URL = '/maintenance-requests';
 
 export const maintenanceService = {
@@ -60,5 +60,25 @@ export const maintenanceService = {
   async getHistory(id: string) {
     const response = await api.get(`${BASE_URL}/${id}/history`);
     return response.data;
+  },
+  async updateRequestStatus(
+    id: string, 
+    payload: { newStatus: Status; status?: number; changedByUserId?: string }
+  ) {
+    try {
+      // Tentative d'envoi vers l'endpoint de mise à jour de statut
+      const response = await api.put(`/maintenancerequests/${id}/status`, {
+        newStatus: payload.newStatus,
+        status: payload.status,
+        changedByUserId: payload.changedByUserId,
+      });
+      return response.data;
+    } catch (error: any) {
+      // Propager directement la réponse Axios pour préserver les détails serveur
+      if (error.response && error.response.data) {
+        throw error.response.data;
+      }
+      throw error;
+    }
   },
 };
